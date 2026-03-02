@@ -1,68 +1,12 @@
+version: '3.8'
+
 services:
-  db:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-signflow}
-      POSTGRES_USER: ${POSTGRES_USER:-signflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SignFlowSecure2024}
-    volumes:
-      - signflow_postgres_data:/var/lib/postgresql/data
-    networks:
-      - signflow_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-signflow}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: always
-        expose:
-      - 5000
-    environment:
-      NODE_ENV: production
-      PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-signflow}:${POSTGRES_PASSWORD:-SignFlowSecure2024}@db:5432/${POSTGRES_DB:-signflow}
-      JWT_SECRET: ${JWT_SECRET:-change_this_secret_in_production}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
-      UPLOAD_DIR: /app/uploads
-    volumes:
-      - signflow_uploads:/app/uploads
-    networks:
-      - signflow_net
-    depends_on:
-      db:
-        condition: service_healthy
-    expose:
-      - "5000"
-
   frontend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
-    restart: always
-        expose:
-      - 80
+    ports:
+      - "80:80"
     environment:
-      - SERVICE_FQDN_FRONTEND_80
-    networks:
-      - signflow_net
-    depends_on:
-      - backend
-
-volumes:
-  signflow_postgres_data:
-  signflow_uploads:
-
-networks:
-  signflow_net:
-    driver: bridge
+      - NODE_ENV=production
+    restart: unless-stopped
